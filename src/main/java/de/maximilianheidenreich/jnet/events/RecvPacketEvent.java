@@ -19,7 +19,7 @@ public class RecvPacketEvent extends AbstractEvent<Void> {
     private final AbstractPacket packet;
 
     /**
-     * TODO: impl
+     * The connection the packet was received from.
      */
     private final Connection connection;
 
@@ -37,7 +37,7 @@ public class RecvPacketEvent extends AbstractEvent<Void> {
 
     @Override
     public String toString() {
-        return String.format("[%s-(%s)-(%d)]", getClass().getSimpleName(), getPacket().getClass().getSimpleName(), getPriority());
+        return String.format("[%s-(%s)-(%d)]", getClass().getSimpleName(), getPacket(), getPriority());
     }
 
 }
