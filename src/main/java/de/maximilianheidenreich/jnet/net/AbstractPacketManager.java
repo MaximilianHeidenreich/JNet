@@ -36,7 +36,7 @@ public abstract class AbstractPacketManager {
     /**
      * Store all registered callbacks.
      */
-    private final HashMap<UUID, CompletableFuture<AbstractPacket>> callbacks;
+    private final Map<UUID, CompletableFuture<AbstractPacket>> callbacks;
 
     /**
      * A reference to an event loop that gets used for packet handling.
@@ -62,8 +62,8 @@ public abstract class AbstractPacketManager {
      */
     public AbstractPacketManager(ExecutorService packetHandlerExecutor, EventLoop eventLoop) {
         this.packetQueue = new LinkedBlockingDeque<>();
-        this.handlers = new HashMap<>();
-        this.callbacks = new HashMap<>();
+        this.handlers = new ConcurrentHashMap<>();
+        this.callbacks = new ConcurrentHashMap<>();
         this.eventLoop = eventLoop;
         setupEventHandlers();
         this.eventLoop.start();
@@ -80,7 +80,6 @@ public abstract class AbstractPacketManager {
      * @param handler
      *          The handler function
      */
-    @Synchronized
     public <P extends AbstractPacket> void addPacketHandler(Class<P> clazz, BiConsumer<P, Connection> handler) {
 
         // Todo: Check null?
@@ -101,7 +100,6 @@ public abstract class AbstractPacketManager {
      * @return
      *          {@code true} if the handler was actually removed | {@code false} if no matching handler was registered
      */
-    @Synchronized
     public <P extends AbstractPacket> boolean removePacketHandler(Class<P> clazz, BiConsumer<P, Connection> handler) {
 
         // RET: No handlers for class
@@ -123,7 +121,6 @@ public abstract class AbstractPacketManager {
      * @return
      *          {@code true} if added | {@code false} if not added
      */
-    @Synchronized
     public boolean addCallback(UUID packetId, CompletableFuture<AbstractPacket> callback) {
 
         // RET: Callback already exists! This indicates a possible issue with packet id's and reusing ids to fast
@@ -143,7 +140,6 @@ public abstract class AbstractPacketManager {
      * @return
      *          {@code true} if removed | {@code false} if not removed
      */
-    @Synchronized
     public boolean removeCallback(UUID packetId) {
 
         // RET: No registered callback!
@@ -166,7 +162,7 @@ public abstract class AbstractPacketManager {
      */
     @Synchronized
     private void handleRecvPacketEvent(RecvPacketEvent event) {
-        AbstractPacket packet = event.getPacket();
+        final AbstractPacket packet = event.getPacket();
 
         // RET: No handlers for abstractEvent!
         if (!getHandlers().containsKey(event.getPacket().getClass()))
@@ -206,7 +202,6 @@ public abstract class AbstractPacketManager {
      * @param packet
      *          The data to pass back to the callbacks
      */
-    @Synchronized
     public void completeCallback(UUID packetId, AbstractPacket packet) {
         getCallbacks().get(packetId).complete(packet);
         removeCallback(packetId);
@@ -218,7 +213,6 @@ public abstract class AbstractPacketManager {
      * @param exceptionPacket
      *          The reason why except was called
      */
-    @Synchronized
     public void exceptCallback(UUID packetId, ExceptionPacket exceptionPacket) {
         getCallbacks().get(packetId).completeExceptionally(exceptionPacket.getException());
         removeCallback(packetId);

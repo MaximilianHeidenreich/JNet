@@ -1,6 +1,5 @@
 package de.maximilianheidenreich.jnet.packets.core;
 
-import de.maximilianheidenreich.jnet.packets.AbstractCallbackPacket;
 import lombok.Getter;
 
 /**

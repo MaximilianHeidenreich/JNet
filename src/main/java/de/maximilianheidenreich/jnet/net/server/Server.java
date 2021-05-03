@@ -2,7 +2,6 @@ package de.maximilianheidenreich.jnet.net.server;
 
 import de.maximilianheidenreich.jnet.net.AbstractPacketManager;
 import de.maximilianheidenreich.jnet.net.Connection;
-import de.maximilianheidenreich.jnet.packets.AbstractCallbackPacket;
 import de.maximilianheidenreich.jnet.packets.core.NameChangePacket;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j;
@@ -10,8 +9,9 @@ import lombok.extern.log4j.Log4j;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
 
 /**
@@ -39,11 +39,9 @@ public class Server extends AbstractPacketManager {
     private ServerSocket serverSocket;
 
     /**
-     *
-     * @param host
-     * @param port
+     * Store active connections with clients.
      */
-    private HashMap<String, Connection> activeConnections;
+    private final Map<String, Connection> activeConnections;
 
 
     // ======================   CONSTRUCTOR
@@ -52,7 +50,7 @@ public class Server extends AbstractPacketManager {
         super();
         this.host = host;
         this.port = port;
-        this.activeConnections = new HashMap<>();
+        this.activeConnections = new ConcurrentHashMap<>();
 
         addPacketHandler(NameChangePacket.class, (p, conn) -> {
 
@@ -78,7 +76,7 @@ public class Server extends AbstractPacketManager {
 
     public void stop() {}
 
-    public CompletableFuture<AbstractCallbackPacket> send(AbstractCallbackPacket packet, Connection connection) throws IOException {
+    /*public CompletableFuture<AbstractCallbackPacket> send(AbstractCallbackPacket packet, Connection connection) throws IOException {
 
         CompletableFuture<AbstractCallbackPacket> future = new CompletableFuture<>();
 
@@ -90,6 +88,6 @@ public class Server extends AbstractPacketManager {
 
         return future;
 
-    }
+    }*/
 
 }
