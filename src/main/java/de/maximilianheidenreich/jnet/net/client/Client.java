@@ -2,12 +2,14 @@ package de.maximilianheidenreich.jnet.net.client;
 
 import de.maximilianheidenreich.jnet.net.AbstractPacketManager;
 import de.maximilianheidenreich.jnet.net.Connection;
+import de.maximilianheidenreich.jnet.packets.AbstractPacket;
 import de.maximilianheidenreich.jnet.packets.core.NameChangePacket;
 import lombok.Getter;
 import lombok.extern.log4j.Log4j;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 
 /**
@@ -57,6 +59,32 @@ public class Client extends AbstractPacketManager {
         this.port = port;
         ForkJoinPool.commonPool().submit(this.connection);
     }
+
+    /**
+     * Wrapper to easily send a packet to the server.
+     *
+     * @param packet
+     *          The packet to send
+     * @return
+     *          {@code true} if the packet was sent | {@code false} if not connection with that name was found
+     */
+    public boolean send(AbstractPacket packet) throws IOException {
+        getConnection().send(packet);
+        return true;
+    }
+
+    /**
+     * Wrapper to easily send a packet to the server.
+     *
+     * @param packet
+     *          The packet to send
+     * @return
+     *          The callback | {@code null} if no connection with that name was found
+     */
+    public CompletableFuture<AbstractPacket> sendThen(AbstractPacket packet) throws IOException {
+        return getConnection().sendThen(packet);
+    }
+
 
     // ======================   HELPERS
 

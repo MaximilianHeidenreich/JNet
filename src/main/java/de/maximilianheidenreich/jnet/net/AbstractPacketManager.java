@@ -186,7 +186,7 @@ public abstract class AbstractPacketManager {
      */
     @Synchronized
     private void handleRecvPacketEvent(RecvPacketEvent event) {
-        final AbstractPacket packet = event.getPacket();
+        AbstractPacket packet = event.getPacket();
 
         // RET: Timeout!
         if (packet.isTimeout()) {
