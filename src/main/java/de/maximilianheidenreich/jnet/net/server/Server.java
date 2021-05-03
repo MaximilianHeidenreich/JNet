@@ -108,6 +108,7 @@ public class Server extends AbstractPacketManager {
         this.serverSocket = new ServerSocket();
         this.serverSocket.bind(new InetSocketAddress(InetAddress.getByName(getHost()), getPort()));
         getServerThreadExecutor().submit(new ServerThread(this));
+        this.running = true;
         return true;
     }
 
@@ -123,6 +124,7 @@ public class Server extends AbstractPacketManager {
         if (!isRunning()) return false;
 
         getEventLoop().stop();
+        this.running = false;
         return true;
     }
 
