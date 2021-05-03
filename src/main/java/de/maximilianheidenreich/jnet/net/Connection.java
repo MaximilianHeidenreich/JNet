@@ -67,7 +67,7 @@ public class Connection implements Runnable {
 
     @Override
     public void run() {
-        log.debug(String.format("Started new ConnectionThread for %s", getSocket().getRemoteSocketAddress().toString()));
+        log.debug(String.format("[JNet] Started new ConnectionThread for %s", getSocket().getRemoteSocketAddress().toString()));
 
         Thread.currentThread().setName(
                 String.format(
@@ -81,12 +81,12 @@ public class Connection implements Runnable {
             try {
                 AbstractPacket packet = recv();
 
-                log.trace("SOCK (" + getName() + ") Read " + packet);
+                log.trace("[JNet] SOCK (" + getName() + ") Read " + packet);
 
                 getPacketManager().getEventLoop().dispatch(new RecvPacketEvent(packet, this));
             }
             catch (IOException | ClassNotFoundException e) {
-                log.error("SOCK (" + getName() + ") Received invalid packet in " + Thread.currentThread() + "!");
+                log.error("[JNet] SOCK (" + getName() + ") Received invalid packet in " + Thread.currentThread() + "!");
                 log.error(ExceptionUtils.getStackTraceAsString(e));
             }
         }
@@ -120,7 +120,7 @@ public class Connection implements Runnable {
         getOutputStream().writeObject(packet);
         if (flush)
             getOutputStream().flush();
-        log.trace(String.format("SOCK (%s) Writing %s, flush: %s", getName(), packet.toString(), flush));
+        log.trace(String.format("[JNet] SOCK (%s) Writing %s, flush: %s", getName(), packet.toString(), flush));
     }
 
     /**

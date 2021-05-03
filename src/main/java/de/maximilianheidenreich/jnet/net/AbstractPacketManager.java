@@ -171,6 +171,7 @@ public abstract class AbstractPacketManager {
                     return (timeout != 0 && System.currentTimeMillis() > timeout);
                 }).collect(Collectors.toList());
 
+        log.debug("[JNet] Found " + timedOutPackets.size() + " timed out packets to remove!");
         timedOutPackets.forEach(p -> getCallbacks().remove(p));
     }
 
