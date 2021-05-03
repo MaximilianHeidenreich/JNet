@@ -86,7 +86,30 @@ If you want something that is highly customizable, you'll have to use something 
 <!-- USAGE -->
 ## Usage
 
-todo
+#### Add the dependency to your pom.xml
+```xml
+<project>
+    ...
+    <repositories>
+        <repository>
+            <id>maximilianheidenreich</id>
+            <name>GitHub MaximilianHeidenreich Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/maximilianheidenreich/*</url>
+        </repository>
+    </repositories>
+    ...
+    <dependencies>
+        <dependency>
+            <groupId>de.maximilian-heidenreich</groupId>
+            <artifactId>jnet</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+    </dependencies>
+    ....
+</project>
+```
+
+-> Visit the `/examples` folder for usage examples.
 
 <!-- BENCHMARK -->
 ## Benchmark
