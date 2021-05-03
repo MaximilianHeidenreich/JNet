@@ -35,7 +35,7 @@
 <h2 align="center">JNet</h2>
 
   <p align="center">
-    A small networking library using packets & callbacks that exposes a simple API.
+    A small (opinionated) networking library using packets & callbacks that exposes a simple API.
     <br>
     <small>zero* - It uses <a href="https://logging.apache.org/log4j/2.x/">Log4J</a> for logging purposes</small>
     <br />
@@ -66,6 +66,9 @@ I created this project because I needed it for my [EnderSync]() project.
 I just needed a basic networking library that supports packet sending and 
 handling of response packets (see callbacks). Also, I did not want a super complicated API 
 but something that is intuitive and easy to use. Because I found nothing, I created this library.
+
+*Please note that this library is pretty opinionated! 
+If you want something that is highly customizable, you'll have to use something else.*
 
 ### Features
 
