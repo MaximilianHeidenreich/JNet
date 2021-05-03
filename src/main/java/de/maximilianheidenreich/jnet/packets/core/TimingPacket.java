@@ -1,12 +1,13 @@
 package de.maximilianheidenreich.jnet.packets.core;
 
+import de.maximilianheidenreich.jnet.packets.AbstractPacket;
 import lombok.Getter;
 
 /**
  * A simple ping packet that
  */
 @Getter
-public class TimingPacket extends AbstractCallbackPacket {
+public class TimingPacket extends AbstractPacket {
 
     // ======================   VARS
 
