@@ -23,7 +23,7 @@ public class AbstractPacket implements Serializable {
 
     /**
      * The timestamp after which the packet will get dropped by the handler and no callbacks will be executed.
-     * Note: 0 = NEVER
+     * Note: 0 = NEVER | This should not be used although possible for some rare edge cases. Default is 5min.
      */
     @Getter
     private long timout = 0;
@@ -39,13 +39,14 @@ public class AbstractPacket implements Serializable {
     }
 
     /**
-     * Creates a new AbstractPacket with a specified id.
+     * Creates a new AbstractPacket with a specified id & default timeout of 5min.
      *
      * @param id
      *          The id to use.
      */
     public AbstractPacket(UUID id) {
         this.id = id;
+        setTimout(5, TimeUnit.MINUTES);
     }
 
 
