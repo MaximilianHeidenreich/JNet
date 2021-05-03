@@ -37,12 +37,12 @@ public class ServerThread implements Runnable {
 
     @Override
     public void run() {
-        log.debug(String.format("[JNet] Started new ServerThread for %s", getServer().getServerSocket().getLocalSocketAddress().toString()));
+        log.debug(String.format("[JNet] Started new ServerThread for %s", getServer().getServerSocket().getLocalSocketAddress()));
 
         Thread.currentThread().setName(
                 String.format(
                         "ServerThread for %s |%s",
-                        getServer().getServerSocket().getLocalSocketAddress().toString(),
+                        getServer().getServerSocket().getLocalSocketAddress(),
                         Thread.currentThread().getName()
                 )
         );
@@ -51,7 +51,7 @@ public class ServerThread implements Runnable {
             try {
                 Socket acceptedSocket = getServer().getServerSocket().accept();
 
-                log.debug(String.format("[JNet] Accepted connection from %s", acceptedSocket.getRemoteSocketAddress().toString()));
+                log.debug(String.format("[JNet] Accepted connection from %s", acceptedSocket.getRemoteSocketAddress()));
 
                 Connection connection = new Connection(getServer(), acceptedSocket);
 

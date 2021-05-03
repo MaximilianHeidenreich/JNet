@@ -9,6 +9,8 @@ import lombok.Setter;
 import lombok.extern.log4j.Log4j;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Map;
@@ -103,7 +105,8 @@ public class Server extends AbstractPacketManager {
         // RET: Already running!
         if (isRunning()) return false;
 
-        this.serverSocket = new ServerSocket(getPort());
+        this.serverSocket = new ServerSocket();
+        this.serverSocket.bind(new InetSocketAddress(InetAddress.getByName(getHost()), getPort()));
         getServerThreadExecutor().submit(new ServerThread(this));
         return true;
     }
