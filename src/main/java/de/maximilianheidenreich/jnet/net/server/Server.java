@@ -2,8 +2,10 @@ package de.maximilianheidenreich.jnet.net.server;
 
 import de.maximilianheidenreich.jnet.net.AbstractPacketManager;
 import de.maximilianheidenreich.jnet.net.Connection;
+import de.maximilianheidenreich.jnet.packets.AbstractPacket;
 import de.maximilianheidenreich.jnet.packets.core.NameChangePacket;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.log4j.Log4j;
 
 import java.io.IOException;
@@ -12,6 +14,7 @@ import java.net.Socket;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 
 /**
@@ -34,6 +37,11 @@ public class Server extends AbstractPacketManager {
     private final int port;
 
     /**
+     * Whether the server is running -> accepting connections.
+     */
+    private boolean running;
+
+    /**
      * Reference to the {@link Socket} instance.
      */
     private ServerSocket serverSocket;
@@ -43,6 +51,18 @@ public class Server extends AbstractPacketManager {
      */
     private final Map<String, Connection> activeConnections;
 
+    /**
+     * The ExecutorService to use for the {@link ServerThread} (accepting new connections).
+     */
+    @Setter
+    private ExecutorService serverThreadExecutor;
+
+    /**
+     * The ExecutorService to use for any {@link Connection} threads.
+     */
+    @Setter
+    private ExecutorService connectionThreadExecutor;
+
 
     // ======================   CONSTRUCTOR
 
@@ -50,7 +70,10 @@ public class Server extends AbstractPacketManager {
         super();
         this.host = host;
         this.port = port;
+        this.running = false;
         this.activeConnections = new ConcurrentHashMap<>();
+        this.serverThreadExecutor = ForkJoinPool.commonPool();
+        this.connectionThreadExecutor = ForkJoinPool.commonPool();
 
         addPacketHandler(NameChangePacket.class, (p, conn) -> {
 
@@ -69,25 +92,82 @@ public class Server extends AbstractPacketManager {
 
     // ======================   HELPERS
 
-    public void start() throws IOException {
+    /**
+     * Starts the server. After this, it can accept connections.
+     *
+     * @return Whether the server was started ({@code false} if it is already running)
+     * @throws IOException
+     */
+    public boolean start() throws IOException {
+
+        // RET: Already running!
+        if (isRunning()) return false;
+
         this.serverSocket = new ServerSocket(getPort());
-        ForkJoinPool.commonPool().submit(new ServerThread(this));
+        getServerThreadExecutor().submit(new ServerThread(this));
+        return true;
     }
 
-    public void stop() {}
+    /**
+     * Tells the server to stop.
+     * Note: This might not instantly shut it down.
+     *
+     * @return Whether the server was told to stop ({@code false} if it is not running)
+     */
+    public boolean stop() {
 
-    /*public CompletableFuture<AbstractCallbackPacket> send(AbstractCallbackPacket packet, Connection connection) throws IOException {
+        // RET: Not running!
+        if (!isRunning()) return false;
 
-        CompletableFuture<AbstractCallbackPacket> future = new CompletableFuture<>();
+        getEventLoop().stop();
+        return true;
+    }
 
-        //getPacketsAwaitingResponse().add(packet);
-        //packet.getCallbacks().add(future);
+    /**
+     * Returns an active Connection by its name or null if not found.
+     *
+     * @param name
+     *          The name identifying the connection
+     * @return
+     *          The Connection | {@code null} if not found
+     */
+    public Connection getConnectionByName(String name) {
+        return getActiveConnections().get(name);
+    }
 
-        // Send to channel.
+    /**
+     * Wrapper to easily send a packet to a connection by its name.
+     *
+     * @param packet
+     *          The packet to send
+     * @param connectionName
+     *          The name of the target {@link Connection}
+     * @return
+     *          {@code true} if the packet was sent | {@code false} if not connection with that name was found
+     */
+    public boolean send(AbstractPacket packet, String connectionName) throws IOException {
+        Connection connection = getConnectionByName(connectionName);
+        if (connection == null) return false;
+
         connection.send(packet);
+        return true;
+    }
 
-        return future;
+    /**
+     * Wrapper to easily send a packet to a connection by its name and respond to callbacks.
+     *
+     * @param packet
+     *          The packet to send
+     * @param connectionName
+     *          The name of the target {@link Connection}
+     * @return
+     *          The callback | {@code null} if no connection with that name was found
+     */
+    public CompletableFuture<AbstractPacket> sendThen(AbstractPacket packet, String connectionName) throws IOException {
+        Connection connection = getConnectionByName(connectionName);
+        if (connection == null) return null;
 
-    }*/
+        return connection.sendThen(packet);
+    }
 
 }
