@@ -24,7 +24,7 @@ public class SimpleClient {
         myPacket.setTimout(5, TimeUnit.SECONDS);                                   // If a packet does not get handled & no callback is executed after 5 seconds it will fail!
 
         // Send a packet and execute a callback on response from server
-        client.sendThen(myPacket)
+        client.send(myPacket)
                 .thenAccept((packet) -> {
                     MyAwesomePacket response = (MyAwesomePacket) packet;                // Here you'll need a typecast because the server could respond with any packet type!
                     // To be safe use "if (packet instanceof xxx)" first
@@ -34,6 +34,9 @@ public class SimpleClient {
                     e.printStackTrace();        // You probably want to check the exception type and handle it accordingly
                     return null;                // Don't forget this, it is needed due to the way CompletableFutures work
                 });
+
+        // If you just want to send a packet without any callback wrapper functionality, use "sendRaw"
+        client.sendRaw(new MyAwesomePacket("See, how no callback code is executed?"));
 
     }
 }

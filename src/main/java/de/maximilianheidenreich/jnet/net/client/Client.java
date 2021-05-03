@@ -68,8 +68,8 @@ public class Client extends AbstractPacketManager {
      * @return
      *          {@code true} if the packet was sent | {@code false} if not connection with that name was found
      */
-    public boolean send(AbstractPacket packet) throws IOException {
-        getConnection().send(packet);
+    public boolean sendRaw(AbstractPacket packet) throws IOException {
+        getConnection().sendRaw(packet);
         return true;
     }
 
@@ -81,8 +81,8 @@ public class Client extends AbstractPacketManager {
      * @return
      *          The callback | {@code null} if no connection with that name was found
      */
-    public CompletableFuture<AbstractPacket> sendThen(AbstractPacket packet) throws IOException {
-        return getConnection().sendThen(packet);
+    public CompletableFuture<AbstractPacket> send(AbstractPacket packet) throws IOException {
+        return getConnection().send(packet);
     }
 
 

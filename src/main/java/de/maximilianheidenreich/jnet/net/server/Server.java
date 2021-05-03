@@ -150,11 +150,11 @@ public class Server extends AbstractPacketManager {
      * @return
      *          {@code true} if the packet was sent | {@code false} if not connection with that name was found
      */
-    public boolean send(AbstractPacket packet, String connectionName) throws IOException {
+    public boolean sendRaw(AbstractPacket packet, String connectionName) throws IOException {
         Connection connection = getConnectionByName(connectionName);
         if (connection == null) return false;
 
-        connection.send(packet);
+        connection.sendRaw(packet);
         return true;
     }
 
@@ -168,11 +168,11 @@ public class Server extends AbstractPacketManager {
      * @return
      *          The callback | {@code null} if no connection with that name was found
      */
-    public CompletableFuture<AbstractPacket> sendThen(AbstractPacket packet, String connectionName) throws IOException {
+    public CompletableFuture<AbstractPacket> send(AbstractPacket packet, String connectionName) throws IOException {
         Connection connection = getConnectionByName(connectionName);
         if (connection == null) return null;
 
-        return connection.sendThen(packet);
+        return connection.send(packet);
     }
 
 }

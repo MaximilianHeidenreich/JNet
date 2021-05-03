@@ -116,7 +116,7 @@ public class Connection implements Runnable {
      *          Whether to flush the channel afterwards
      * @throws IOException
      */
-    public void send(AbstractPacket packet, boolean flush) throws IOException {
+    public void sendRaw(AbstractPacket packet, boolean flush) throws IOException {
         getOutputStream().writeObject(packet);
         if (flush)
             getOutputStream().flush();
@@ -124,14 +124,14 @@ public class Connection implements Runnable {
     }
 
     /**
-     * Wrapper around {@link #send(AbstractPacket, boolean)} with flush defaulting to {@code false}.
+     * Wrapper around {@link #sendRaw(AbstractPacket, boolean)} with flush defaulting to {@code false}.
      *
      * @param packet
      *          The packet to send
      * @throws IOException
      */
-    public void send(AbstractPacket packet) throws IOException {
-        send(packet, false);
+    public void sendRaw(AbstractPacket packet) throws IOException {
+        sendRaw(packet, false);
     }
 
     /**
@@ -144,15 +144,15 @@ public class Connection implements Runnable {
      *          The callback
      * @throws IOException
      */
-    public CompletableFuture<AbstractPacket> sendThen(AbstractPacket packet, boolean flush) throws IOException {
+    public CompletableFuture<AbstractPacket> send(AbstractPacket packet, boolean flush) throws IOException {
         CompletableFuture<AbstractPacket> future = new CompletableFuture<>();
         getPacketManager().addCallback(packet, future);
-        send(packet, flush);
+        sendRaw(packet, flush);
         return future;
     }
 
     /**
-     * Wrapper around {@link #sendThen(AbstractPacket, boolean)} with flush defaulting to {@code false}.
+     * Wrapper around {@link #send(AbstractPacket, boolean)} with flush defaulting to {@code false}.
      *
      * @param packet
      *          The packet to send
@@ -160,8 +160,8 @@ public class Connection implements Runnable {
      *          The callback
      * @throws IOException
      */
-    public CompletableFuture<AbstractPacket> sendThen(AbstractPacket packet) throws IOException {
-        return sendThen(packet, false);
+    public CompletableFuture<AbstractPacket> send(AbstractPacket packet) throws IOException {
+        return send(packet, false);
     }
 
 
@@ -188,11 +188,11 @@ public class Connection implements Runnable {
         String oldName = getName();
         this.name = name;
 
-        sendThen(new NameChangePacket(oldName, name))
-        .exceptionally(err -> {
-            err.printStackTrace();  // TODO: fix nicer
-            return null;
-        });
+        send(new NameChangePacket(oldName, name))
+            .exceptionally(err -> {
+                err.printStackTrace();  // TODO: fix nicer
+                return null;
+            });
     }
 
 }

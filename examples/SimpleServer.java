@@ -15,7 +15,7 @@ public class SimpleServer {
             // Note: You could send back any type of AbstractPacket. Conventionally you use the same type or use a "xxxRequestPacket" & "xxxResposnePacket" structure
             try {
                 MyAwesomePacket response = new MyAwesomePacket("Hey from server! I got: " + packet.message);
-                connection.send(response);
+                connection.sendRaw(response);
             } catch (IOException exception) {
                 exception.printStackTrace();        // You probably want to handle this in another way!
             }
