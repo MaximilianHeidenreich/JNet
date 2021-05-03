@@ -146,8 +146,8 @@ public class Connection implements Runnable {
      */
     public CompletableFuture<AbstractPacket> sendThen(AbstractPacket packet, boolean flush) throws IOException {
         CompletableFuture<AbstractPacket> future = new CompletableFuture<>();
-        getPacketManager().addCallback(packet.getId(), future);
-        send(packet, flush); // TODO: FIX Mem leak, catch io, remove from callback & rethrow
+        getPacketManager().addCallback(packet, future);
+        send(packet, flush);
         return future;
     }
 

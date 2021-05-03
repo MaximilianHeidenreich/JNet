@@ -3,8 +3,10 @@ package de.maximilianheidenreich.jnet.net;
 import de.maximilianheidenreich.jeventloop.EventLoop;
 import de.maximilianheidenreich.jeventloop.utils.ExceptionUtils;
 import de.maximilianheidenreich.jnet.events.RecvPacketEvent;
+import de.maximilianheidenreich.jnet.exceptions.PacketTimeoutException;
 import de.maximilianheidenreich.jnet.packets.AbstractPacket;
 import de.maximilianheidenreich.jnet.packets.ExceptionPacket;
+import de.maximilianheidenreich.jnet.utils.Pair;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.Synchronized;
@@ -13,6 +15,7 @@ import lombok.extern.log4j.Log4j;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 /**
  * A wrapper class that stores registered packet handlers & callbacks.
@@ -36,7 +39,12 @@ public abstract class AbstractPacketManager {
     /**
      * Store all registered callbacks.
      */
-    private final Map<UUID, CompletableFuture<AbstractPacket>> callbacks;
+    private final Map<UUID, Pair<CompletableFuture<AbstractPacket>, Long>> callbacks;   // <packetId, <callback, timeout>>
+
+    /**
+     *
+     */
+    private final ScheduledExecutorService scheduler;
 
     /**
      * A reference to an event loop that gets used for packet handling.
@@ -51,22 +59,22 @@ public abstract class AbstractPacketManager {
      * Creates a new AbstractPacketManager with a default singleThreadExecutor and new default EventLoop..
      */
     public AbstractPacketManager() {
-        this(Executors.newSingleThreadExecutor(), new EventLoop());
+        this(new EventLoop());
     }
 
     /**
      * Creates a new AbstractPacketManager with a custom executor.
-     *
-     * @param packetHandlerExecutor
-     *          The executor which will dequeue & handle packets.
      */
-    public AbstractPacketManager(ExecutorService packetHandlerExecutor, EventLoop eventLoop) {
+    public AbstractPacketManager(EventLoop eventLoop) {
         this.packetQueue = new LinkedBlockingDeque<>();
         this.handlers = new ConcurrentHashMap<>();
         this.callbacks = new ConcurrentHashMap<>();
+        this.scheduler = Executors.newScheduledThreadPool(1);
         this.eventLoop = eventLoop;
         setupEventHandlers();
         this.eventLoop.start();
+
+        scheduler.scheduleAtFixedRate(this::cleanupTimeoutCallbacks, 30, 80, TimeUnit.SECONDS);
     }
 
 
@@ -116,18 +124,18 @@ public abstract class AbstractPacketManager {
     /**
      * Adds a callback.
      *
-     * @param packetId
-     *          The packet id associated with the callback
+     * @param packet
+     *          The packet associated with the callback
      * @return
      *          {@code true} if added | {@code false} if not added
      */
-    public boolean addCallback(UUID packetId, CompletableFuture<AbstractPacket> callback) {
+    public boolean addCallback(AbstractPacket packet, CompletableFuture<AbstractPacket> callback) {
 
         // RET: Callback already exists! This indicates a possible issue with packet id's and reusing ids to fast
-        if (getCallbacks().containsKey(packetId))
+        if (getCallbacks().containsKey(packet.getId()))
             return false;
 
-        getCallbacks().put(packetId, callback);
+        getCallbacks().put(packet.getId(), Pair.from(callback, packet.getTimout()));
         return true;
 
     }
@@ -135,20 +143,35 @@ public abstract class AbstractPacketManager {
     /**
      * Removed a callback.
      *
-     * @param packetId
-     *          The packet id associated with the callback
+     * @param packet
+     *          The packet associated with the callback
      * @return
      *          {@code true} if removed | {@code false} if not removed
      */
-    public boolean removeCallback(UUID packetId) {
+    public boolean removeCallback(AbstractPacket packet) {
 
         // RET: No registered callback!
-        if (!getCallbacks().containsKey(packetId))
+        if (!getCallbacks().containsKey(packet.getId()))
             return false;
 
-        getCallbacks().remove(packetId);
+        getCallbacks().remove(packet.getId());
         return true;
 
+    }
+
+    /**
+     * Removes all timed out callbacks.
+     * Note: A timed out callback will automatically get removed if a timed out packet was received.
+     *       But this prevents memory leaks if a packet never gets delivered!
+     */
+    private void cleanupTimeoutCallbacks() {
+        List<UUID> timedOutPackets = getCallbacks().keySet().stream()
+                .filter(uuid -> {
+                    long timeout =getCallbacks().get(uuid).getB();
+                    return (timeout != 0 && System.currentTimeMillis() > timeout);
+                }).collect(Collectors.toList());
+
+        timedOutPackets.forEach(p -> getCallbacks().remove(p));
     }
 
 
@@ -164,6 +187,12 @@ public abstract class AbstractPacketManager {
     private void handleRecvPacketEvent(RecvPacketEvent event) {
         final AbstractPacket packet = event.getPacket();
 
+        // RET: Timeout!
+        if (packet.isTimeout()) {
+            exceptCallback(packet, new PacketTimeoutException(packet));
+            return;
+        }
+
         // RET: No handlers for abstractEvent!
         if (!getHandlers().containsKey(event.getPacket().getClass()))
             return;
@@ -178,11 +207,8 @@ public abstract class AbstractPacketManager {
 
         }
 
-        // RET: No registered callbacks!
-        if (!getCallbacks().containsKey(packet.getId())) return;
-
-        if (packet instanceof ExceptionPacket) exceptCallback(packet.getId(), (ExceptionPacket) packet);
-        else completeCallback(packet.getId(), packet);
+        if (packet instanceof ExceptionPacket) exceptCallback(packet, ((ExceptionPacket) packet).getException());
+        else completeCallback(packet);
 
     }
 
@@ -202,20 +228,28 @@ public abstract class AbstractPacketManager {
      * @param packet
      *          The data to pass back to the callbacks
      */
-    public void completeCallback(UUID packetId, AbstractPacket packet) {
-        getCallbacks().get(packetId).complete(packet);
-        removeCallback(packetId);
+    public void completeCallback(AbstractPacket packet) {
+
+        // RET: No registered callbacks!
+        if (!getCallbacks().containsKey(packet.getId())) return;
+
+        getCallbacks().get(packet.getId()).getA().complete(packet);
+        removeCallback(packet);
     }
 
     /**
      * Excepts a registered callback.
      *
-     * @param exceptionPacket
+     * @param throwable
      *          The reason why except was called
      */
-    public void exceptCallback(UUID packetId, ExceptionPacket exceptionPacket) {
-        getCallbacks().get(packetId).completeExceptionally(exceptionPacket.getException());
-        removeCallback(packetId);
+    public void exceptCallback(AbstractPacket packet, Throwable throwable) {
+
+        // RET: No registered callbacks!
+        if (!getCallbacks().containsKey(packet.getId())) return;
+
+        getCallbacks().get(packet.getId()).getA().completeExceptionally(throwable);
+        removeCallback(packet);
     }
 
 
